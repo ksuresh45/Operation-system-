@@ -1,0 +1,142 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define FILENAME "employee.dat"
+
+typedef struct {
+    int id;
+    char name[50];
+    int age;
+    float salary;
+} Employee;
+
+// Function to add an employee
+void addEmployee() {
+    Employee emp;
+    FILE *fp = fopen(FILENAME, "ab"); // Open file for appending in binary mode
+    if (!fp) {
+        perror("File opening failed");
+        return;
+    }
+
+    printf("Enter Employee ID: ");
+    scanf("%d", &emp.id);
+    printf("Enter Name: ");
+    scanf("%s", emp.name);
+    printf("Enter Age: ");
+    scanf("%d", &emp.age);
+    printf("Enter Salary: ");
+    scanf("%f", &emp.salary);
+
+    fwrite(&emp, sizeof(Employee), 1, fp);
+    fclose(fp);
+    printf("Employee added successfully.\n");
+}
+
+// Function to display all employees
+void displayEmployees() {
+    Employee emp;
+    FILE *fp = fopen(FILENAME, "rb");
+    if (!fp) {
+        printf("No records found.\n");
+        return;
+    }
+
+    printf("\nEmployee Details:\n");
+    printf("ID\tName\tAge\tSalary\n");
+    while (fread(&emp, sizeof(Employee), 1, fp) == 1) {
+        printf("%d\t%s\t%d\t%.2f\n", emp.id, emp.name, emp.age, emp.salary);
+    }
+    fclose(fp);
+}
+
+// Function to update employee salary using random access
+void updateSalary() {
+    int id;
+    float newSalary;
+    printf("Enter Employee ID to update salary: ");
+    scanf("%d", &id);
+
+    FILE *fp = fopen(FILENAME, "rb+"); // Open file for reading and writing
+    if (!fp) {
+        printf("No records found.\n");
+        return;
+    }
+
+    Employee emp;
+    int found = 0;
+    while (fread(&emp, sizeof(Employee), 1, fp) == 1) {
+        if (emp.id == id) {
+            printf("Current Salary of %s: %.2f\n", emp.name, emp.salary);
+            printf("Enter new Salary: ");
+            scanf("%f", &newSalary);
+            emp.salary = newSalary;
+
+            // Move the file pointer back to overwrite the record
+            fseek(fp, -sizeof(Employee), SEEK_CUR);
+            fwrite(&emp, sizeof(Employee), 1, fp);
+            found = 1;
+            printf("Salary updated successfully.\n");
+            break;
+        }
+    }
+
+    if (!found)
+        printf("Employee with ID %d not found.\n", id);
+
+    fclose(fp);
+}
+
+// Function to search employee by ID
+void searchEmployee() {
+    int id;
+    printf("Enter Employee ID to search: ");
+    scanf("%d", &id);
+
+    FILE *fp = fopen(FILENAME, "rb");
+    if (!fp) {
+        printf("No records found.\n");
+        return;
+    }
+
+    Employee emp;
+    int found = 0;
+    while (fread(&emp, sizeof(Employee), 1, fp) == 1) {
+        if (emp.id == id) {
+            printf("\nEmployee Found:\n");
+            printf("ID: %d\nName: %s\nAge: %d\nSalary: %.2f\n", emp.id, emp.name, emp.age, emp.salary);
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found)
+        printf("Employee with ID %d not found.\n", id);
+
+    fclose(fp);
+}
+
+int main() {
+    int choice;
+    while (1) {
+        printf("\nEmployee Management Using Random Access File\n");
+        printf("1. Add Employee\n");
+        printf("2. Display All Employees\n");
+        printf("3. Update Employee Salary\n");
+        printf("4. Search Employee\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        scanf("%d", &choice);
+
+        switch (choice) {
+            case 1: addEmployee(); break;
+            case 2: displayEmployees(); break;
+            case 3: updateSalary(); break;
+            case 4: searchEmployee(); break;
+            case 5: exit(0);
+            default: printf("Invalid choice! Try again.\n");
+        }
+    }
+    return 0;
+}

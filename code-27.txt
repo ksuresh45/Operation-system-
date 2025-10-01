@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <dirent.h>     // opendir, readdir
+#include <sys/stat.h>   // stat
+#include <unistd.h>
+#include <pwd.h>        // getpwuid
+#include <grp.h>        // getgrgid
+#include <time.h>       // ctime
+#include <string.h>
+
+int main() {
+    char dirname[100];
+    printf("Enter directory to list (or '.' for current): ");
+    scanf("%s", dirname);
+
+    DIR *d = opendir(dirname);
+    if (!d) {
+        perror("Unable to open directory");
+        return 1;
+    }
+
+    struct dirent *entry;
+    struct stat fileStat;
+    char filepath[200];
+
+    printf("\nPermissions\tLinks\tOwner\tGroup\tSize\tLast Modified\t\tName\n");
+    printf("-------------------------------------------------------------------------------\n");
+
+    while ((entry = readdir(d)) != NULL) {
+        snprintf(filepath, sizeof(filepath), "%s/%s", dirname, entry->d_name);
+        if (stat(filepath, &fileStat) == -1) {
+            perror("stat");
+            continue;
+        }
+
+        // File type and permissions
+        char perm[11] = "----------";
+        if (S_ISDIR(fileStat.st_mode)) perm[0] = 'd';
+        if (fileStat.st_mode & S_IRUSR) perm[1] = 'r';
+        if (fileStat.st_mode & S_IWUSR) perm[2] = 'w';
+        if (fileStat.st_mode & S_IXUSR) perm[3] = 'x';
+        if (fileStat.st_mode & S_IRGRP) perm[4] = 'r';
+        if (fileStat.st_mode & S_IWGRP) perm[5] = 'w';
+        if (fileStat.st_mode & S_IXGRP) perm[6] = 'x';
+        if (fileStat.st_mode & S_IROTH) perm[7] = 'r';
+        if (fileStat.st_mode & S_IWOTH) perm[8] = 'w';
+        if (fileStat.st_mode & S_IXOTH) perm[9] = 'x';
+
+        // Owner and group
+        struct passwd *pw = getpwuid(fileStat.st_uid);
+        struct group  *gr = getgrgid(fileStat.st_gid);
+
+        printf("%s\t%ld\t%s\t%s\t%ld\t%s\t%s\n",
+               perm,
+               fileStat.st_nlink,
+               pw->pw_name,
+               gr->gr_name,
+               fileStat.st_size,
+               ctime(&fileStat.st_mtime),
+               entry->d_name);
+    }
+
+    closedir(d);
+    return 0;
+}

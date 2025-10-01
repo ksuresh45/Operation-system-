@@ -1,0 +1,41 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MAX_LINE 1024
+
+int main() {
+    char filename[100], pattern[100];
+    FILE *fp;
+    char line[MAX_LINE];
+    int line_number = 0;
+    int found = 0;
+
+    // Input file name
+    printf("Enter file name: ");
+    scanf("%s", filename);
+
+    // Open file
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        perror("Error opening file");
+        return 1;
+    }
+
+    // Input search pattern
+    printf("Enter search pattern: ");
+    scanf(" %[^\n]", pattern); // Read string with spaces
+
+    printf("\nLines containing '%s' in file '%s':\n", pattern, filename);
+    
+    // Read file line by line
+    while (fgets(line, sizeof(line), fp) != NULL) {
+        line_number++;
+        if (strstr(line, pattern) != NULL) { // Pattern found in line
+            printf("Line %d: %s", line_number, line);
+            found = 1;
+        }
+    }
+
+    if (!found)
+        printf("No match found.\n");
