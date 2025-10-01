@@ -1,0 +1,66 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+#define MAX_TEXT 512
+
+// Message structure
+struct message {
+    long msg_type;
+    char msg_text[MAX_TEXT];
+};
+
+int main() {
+    key_t key = ftok("msgqueuefile", 65); // Generate unique key
+    int msgid = msgget(key, 0666 | IPC_CREAT); // Create message queue
+
+    if (msgid == -1) {
+        perror("msgget failed");
+        exit(1);
+    }
+
+    pid_t pid = fork();
+
+    if (pid < 0) {
+        perror("fork failed");
+        exit(1);
+    }
+
+    if (pid > 0) { 
+        // Parent process: sends message
+        struct message msg;
+        msg.msg_type = 1;
+
+        printf("Parent: Enter message to send: ");
+        fgets(msg.msg_text, MAX_TEXT, stdin);
+
+        if (msgsnd(msgid, &msg, sizeof(msg.msg_text), 0) == -1) {
+            perror("msgsnd failed");
+            exit(1);
+        }
+
+        printf("Parent: Message sent.\n");
+
+        wait(NULL); // Wait for child to finish
+    } else { 
+        // Child process: receives message
+        sleep(1); // Ensure parent sends first
+
+        struct message msg;
+        if (msgrcv(msgid, &msg, sizeof(msg.msg_text), 1, 0) == -1) {
+            perror("msgrcv failed");
+            exit(1);
+        }
+
+        printf("Child: Message received: %s\n", msg.msg_text);
+
+        // Destroy message queue
+        msgctl(msgid, IPC_RMID, NULL);
+    }
+
+    return 0;
+}
